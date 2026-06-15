@@ -4,7 +4,7 @@ A Python CLI tool for preparing product images for marketplace cards.
 
 ## Current version
 
-v0.1 — project skeleton.
+v0.2 — single image processing
 
 ## Planned features
 
@@ -14,3 +14,14 @@ v0.1 — project skeleton.
 - Frame/template support
 - Optional background removal
 - Docker support
+
+## How to run
+
+Run:
+python -m app.cli
+
+Input:
+data/input/test.jpg
+
+Output:
+data/output/result.jpg
