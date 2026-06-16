@@ -4,7 +4,7 @@ A Python CLI tool for preparing product images for marketplace cards.
 
 ## Current version
 
-v0.2 — single image processing
+v0.3 — batch image processing
 
 ## Planned features
 
@@ -17,11 +17,14 @@ v0.2 — single image processing
 
 ## How to run
 
+Place images into:
+data/input
+
 Run:
 python -m app.cli
 
-Input:
-data/input/test.jpg
+Processed images will be saved to:
+data/output
 
-Output:
-data/output/result.jpg
+supported file extensions:
+.jpg, .jpeg, .png, .webp

@@ -1,13 +1,14 @@
 from app.image_io import load_image, save_image
+from app.image_io import get_image_paths
+from pathlib import Path
 
-input_path = "data/input/test.jpg"
-output_path = "data/output/result.jpg"
+image_paths = get_image_paths("data/input")
 
-image = load_image(input_path)
+output_folder = Path("data/output")
 
-print("Product card processor started")
-print(f"image size: {image.size}")
+for item in image_paths:
+    image = load_image(item)
+    output_path = output_folder / item.name
+    save_image(image, output_path)
+    print(f"Image saved to: {output_path}")
 
-save_image(image, output_path)
-
-print(f"Image saved to: {output_path}")
