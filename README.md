@@ -9,7 +9,7 @@ A Python CLI tool for preparing product images for marketplace cards.
 
 ## Current version
 
-v0.4 — centered product card generation
+v0.5 — configurable CLI arguments
 
 ## Planned features
 
@@ -22,14 +22,9 @@ v0.4 — centered product card generation
 
 ## How to run
 
-Place images into:
-data/input
+python -m app.cli --input data/input --output data/output
 
-Run:
-python -m app.cli
-
-Processed images will be saved to:
-data/output
+python -m app.cli --canvas-width 1200 --canvas-height 1600 --max-image-width 1000 --max-image-height 1300
 
 supported file extensions:
 .jpg, .jpeg, .png, .webp
