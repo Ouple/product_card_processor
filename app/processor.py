@@ -15,6 +15,7 @@ class ImageProcessor:
         self.max_image_width = max_image_width
         self.max_image_height = max_image_height
         self.processed_count = 0
+        self.failed_count = 0
 
     def get_settings(self):
         return {"input_folder": self.input_folder,
@@ -37,10 +38,26 @@ class ImageProcessor:
         return output_path
 
     def process_all_images(self):
+        if not self.input_folder.exists():
+            raise FileNotFoundError(f"Input folder does not exist: {self.input_folder}")
+
+        if not self.input_folder.is_dir():
+            raise NotADirectoryError(f"Input folder is not a directory: {self.input_folder}")
+
+        self.output_folder.mkdir(parents=True, exist_ok=True)
+
         image_paths = get_image_paths(self.input_folder)
+
+        if not image_paths:
+            raise ValueError(f"No images found in input folder: {self.input_folder}")
+
         for image_path in image_paths:
-            output_path = self.process_single_image(image_path)
-            print(output_path)
+            try:
+                output_path = self.process_single_image(image_path)
+                print(output_path)
+            except OSError as error:
+                print(f"File was not processed: {image_path}\nReason: {error}")
+                self.failed_count += 1
 
         return self.processed_count
 

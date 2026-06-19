@@ -56,8 +56,17 @@ processor = ImageProcessor(args.input,
                            args.max_image_width,
                            args.max_image_height)
 
-processed_count = processor.process_all_images()
-print(f"Processed images {processed_count}")
+try:
+    processed_count = processor.process_all_images()
+    print(f"Processed images {processed_count}")
+    print(f"Failed images {processor.failed_count}")
+
+except FileNotFoundError as error:
+    print(error)
+except NotADirectoryError as error:
+    print(error)
+except ValueError as error:
+    print(error)
 
 
 

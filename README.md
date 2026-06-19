@@ -7,9 +7,15 @@ A Python CLI tool for preparing product images for marketplace cards.
 - places it on a 1080x1440 white canvas
 - saves results to data/output
 
+- creates output folder automatically
+- shows friendly errors for missing input folder
+- shows friendly errors for empty input folder
+- skips broken images without stopping batch processing
+- prints processed and failed counts
+
 ## Current version
 
-v0.5 — configurable CLI arguments
+v0.6 — friendly error handling
 
 ## Planned features
 
