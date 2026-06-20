@@ -1,13 +1,13 @@
 from app.image_io import load_image, save_image, get_image_paths
 
-from app.transforms import resize_to_fit, create_centered_canvas
+from app.transforms import resize_to_fit, create_centered_canvas, paste_centered
 
 
 class ImageProcessor:
 
     def __init__(self, input_folder, output_folder,
                  canvas_width, canvas_height,
-                 max_image_width, max_image_height, allow_upscale=True):
+                 max_image_width, max_image_height, allow_upscale=True, template_path=None):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
@@ -15,6 +15,7 @@ class ImageProcessor:
         self.max_image_width = max_image_width
         self.max_image_height = max_image_height
         self.allow_upscale = allow_upscale
+        self.template_path = template_path
         self.processed_count = 0
         self.failed_count = 0
 
@@ -25,7 +26,8 @@ class ImageProcessor:
                 "canvas_height": self.canvas_height,
                 "max_image_width": self.max_image_width,
                 "max_image_height": self.max_image_height,
-                "allow_upscale": self.allow_upscale
+                "allow_upscale": self.allow_upscale,
+                "template_path": self.template_path
                 }
 
     def process_single_image(self, image_path):
@@ -35,7 +37,11 @@ class ImageProcessor:
                                       self.max_image_height,
                                       allow_upscale=self.allow_upscale
                                       )
-        canvas = create_centered_canvas(resized_image, self.canvas_width, self.canvas_height)
+        if self.template_path:
+            template = load_image(self.template_path)
+            canvas = paste_centered(template, resized_image)
+        else:
+            canvas = create_centered_canvas(resized_image, self.canvas_width, self.canvas_height)
 
         output_path = self.output_folder / image_path.name
         save_image(canvas, output_path)

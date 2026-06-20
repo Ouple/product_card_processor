@@ -7,6 +7,8 @@ def load_image(path):
     return Image.open(path)
 
 def save_image(image, path):
+    if path.suffix.lower() in [".jpg", ".jpeg"] and image.mode == "RGBA":
+        image = image.convert("RGB")
     image.save(path)
 
 def get_image_paths(input_folder):

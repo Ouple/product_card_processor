@@ -48,6 +48,11 @@ def parse_args():
                         action="store_true",
                         help='no upscale mode'
                         )
+    parser.add_argument("--template",
+                        type=Path,
+                        default=None,
+                        help="Template canvas"
+                        )
 
     return parser.parse_args()
 
@@ -60,7 +65,8 @@ processor = ImageProcessor(
     canvas_height=args.canvas_height,
     max_image_width=args.max_image_width,
     max_image_height=args.max_image_height,
-    allow_upscale=not args.no_upscale
+    allow_upscale=not args.no_upscale,
+    template_path = args.template
 )
 
 try:

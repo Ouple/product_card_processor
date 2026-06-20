@@ -4,7 +4,7 @@ A Python CLI tool for preparing product images for marketplace cards.
 
 ## Current version
 
-v0.7 — improved resize behavior
+v0.8 — template/background support
 
 ## Features
 
@@ -20,6 +20,9 @@ v0.7 — improved resize behavior
 * Prints processed and failed image counts
 * Uses high-quality resize with LANCZOS
 * Supports `--no-upscale` mode for keeping small images at their original size
+- Supports custom template/background images
+- When a template is provided, output size is based on the template size
+- When no template is provided, canvas width and height are used
 
 ## Supported file extensions
 
@@ -40,6 +43,11 @@ Custom canvas and product size:
 
 ```bash
 python -m app.cli --canvas-width 1200 --canvas-height 1600 --max-image-width 1000 --max-image-height 1300
+```
+User Template
+
+```bash
+python -m app.cli --template data/template.png
 ```
 
 Disable upscaling for small images:

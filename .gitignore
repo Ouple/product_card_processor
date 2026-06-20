@@ -10,3 +10,5 @@ data/output/*
 
 .env
 .idea/
+
+data/template.png
