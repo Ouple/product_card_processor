@@ -44,17 +44,24 @@ def parse_args():
                         default=MAX_IMAGE_HEIGHT,
                         help='Max image height in pixels'
                         )
+    parser.add_argument("--no-upscale",
+                        action="store_true",
+                        help='no upscale mode'
+                        )
 
     return parser.parse_args()
 
 args = parse_args()
 
-processor = ImageProcessor(args.input,
-                           args.output,
-                           args.canvas_width,
-                           args.canvas_height,
-                           args.max_image_width,
-                           args.max_image_height)
+processor = ImageProcessor(
+    input_folder=args.input,
+    output_folder=args.output,
+    canvas_width=args.canvas_width,
+    canvas_height=args.canvas_height,
+    max_image_width=args.max_image_width,
+    max_image_height=args.max_image_height,
+    allow_upscale=not args.no_upscale
+)
 
 try:
     processed_count = processor.process_all_images()

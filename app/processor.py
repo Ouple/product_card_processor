@@ -7,13 +7,14 @@ class ImageProcessor:
 
     def __init__(self, input_folder, output_folder,
                  canvas_width, canvas_height,
-                 max_image_width, max_image_height):
+                 max_image_width, max_image_height, allow_upscale=True):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
         self.max_image_width = max_image_width
         self.max_image_height = max_image_height
+        self.allow_upscale = allow_upscale
         self.processed_count = 0
         self.failed_count = 0
 
@@ -23,12 +24,17 @@ class ImageProcessor:
                 "canvas_width": self.canvas_width,
                 "canvas_height": self.canvas_height,
                 "max_image_width": self.max_image_width,
-                "max_image_height": self.max_image_height
-        }
+                "max_image_height": self.max_image_height,
+                "allow_upscale": self.allow_upscale
+                }
 
     def process_single_image(self, image_path):
         image = load_image(image_path)
-        resized_image = resize_to_fit(image, self.max_image_width, self.max_image_height)
+        resized_image = resize_to_fit(image,
+                                      self.max_image_width,
+                                      self.max_image_height,
+                                      allow_upscale=self.allow_upscale
+                                      )
         canvas = create_centered_canvas(resized_image, self.canvas_width, self.canvas_height)
 
         output_path = self.output_folder / image_path.name

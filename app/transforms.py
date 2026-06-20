@@ -1,21 +1,24 @@
 from PIL import Image
 
-def calculate_fit_size(original_width, original_height, max_width, max_height):
+def calculate_fit_size(original_width, original_height, max_width, max_height, allow_upscale=True):
     scale_by_width = max_width / original_width
     scale_by_height = max_height / original_height
     scale = min(scale_by_width, scale_by_height)
+    if not allow_upscale:
+        scale = min(scale, 1)
     new_width = int(original_width * scale)
     new_height = int(original_height * scale)
     return new_width, new_height
 
-def resize_to_fit(image, max_width, max_height):
+def resize_to_fit(image, max_width, max_height, allow_upscale=True):
     original_width, original_height = image.size
     new_width, new_height = calculate_fit_size(
         original_width,
         original_height,
         max_width,
-        max_height)
-    return image.resize((new_width, new_height))
+        max_height,
+        allow_upscale=allow_upscale)
+    return image.resize((new_width, new_height), resample=Image.Resampling.LANCZOS)
 
 def create_centered_canvas(resize_image, canvas_width, canvas_height):
     canvas = Image.new(mode="RGB", size=(canvas_width, canvas_height), color="white")
