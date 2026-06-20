@@ -53,6 +53,15 @@ def parse_args():
                         default=None,
                         help="Template canvas"
                         )
+    parser.add_argument("--offset-x",
+                        type=int,
+                        default=0,
+                        help="Horizontal offset from center in pixels"
+                        )
+    parser.add_argument("--offset-y",
+                        type=int,
+                        default=0,
+                        help="Vertical offset from center in pixels")
 
     return parser.parse_args()
 
@@ -66,7 +75,9 @@ processor = ImageProcessor(
     max_image_width=args.max_image_width,
     max_image_height=args.max_image_height,
     allow_upscale=not args.no_upscale,
-    template_path = args.template
+    template_path = args.template,
+    offset_x=args.offset_x,
+    offset_y=args.offset_y
 )
 
 try:

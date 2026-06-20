@@ -7,7 +7,9 @@ class ImageProcessor:
 
     def __init__(self, input_folder, output_folder,
                  canvas_width, canvas_height,
-                 max_image_width, max_image_height, allow_upscale=True, template_path=None):
+                 max_image_width, max_image_height,
+                 allow_upscale=True, template_path=None,
+                 offset_x=0, offset_y=0):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
@@ -18,6 +20,8 @@ class ImageProcessor:
         self.template_path = template_path
         self.processed_count = 0
         self.failed_count = 0
+        self.offset_x = offset_x
+        self.offset_y = offset_y
 
     def get_settings(self):
         return {"input_folder": self.input_folder,
@@ -27,7 +31,9 @@ class ImageProcessor:
                 "max_image_width": self.max_image_width,
                 "max_image_height": self.max_image_height,
                 "allow_upscale": self.allow_upscale,
-                "template_path": self.template_path
+                "template_path": self.template_path,
+                "offset_x": self.offset_x,
+                "offset_y": self.offset_y
                 }
 
     def process_single_image(self, image_path):
@@ -39,9 +45,16 @@ class ImageProcessor:
                                       )
         if self.template_path:
             template = load_image(self.template_path)
-            canvas = paste_centered(template, resized_image)
+            canvas = paste_centered(template,
+                                    resized_image,
+                                    offset_x=self.offset_x,
+                                    offset_y=self.offset_y)
         else:
-            canvas = create_centered_canvas(resized_image, self.canvas_width, self.canvas_height)
+            canvas = create_centered_canvas(resized_image,
+                                            self.canvas_width,
+                                            self.canvas_height,
+                                            offset_x=self.offset_x,
+                                            offset_y=self.offset_y)
 
         output_path = self.output_folder / image_path.name
         save_image(canvas, output_path)

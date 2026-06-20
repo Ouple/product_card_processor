@@ -27,18 +27,22 @@ def create_blank_canvas(width, height, color="white"):
     return canvas
 
 
-def paste_centered(background, image):
+def paste_centered(background, image, offset_x=0, offset_y=0):
     image_width, image_height = image.size
     canvas_width, canvas_height = background.size
-    x = (canvas_width - image_width) // 2
-    y = (canvas_height - image_height) // 2
+    x = ((canvas_width - image_width) // 2) + offset_x
+    y = ((canvas_height - image_height) // 2) + offset_y
     canvas = background.copy()
     canvas.paste(image, (x, y))
     return canvas
 
 
-def create_centered_canvas(image, canvas_width, canvas_height, color="white"):
+def create_centered_canvas(image, canvas_width, canvas_height, color="white", offset_x=0, offset_y=0):
     canvas = create_blank_canvas(canvas_width, canvas_height, color)
-    return paste_centered(canvas, image)
+    return paste_centered(canvas,
+                          image,
+                          offset_x=offset_x,
+                          offset_y=offset_y
+                          )
 
 

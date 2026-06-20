@@ -23,6 +23,7 @@ v0.8 — template/background support
 - Supports custom template/background images
 - When a template is provided, output size is based on the template size
 - When no template is provided, canvas width and height are used
+- Pixel offsets from center with --offset-x and --offset-y
 
 ## Supported file extensions
 
@@ -61,11 +62,14 @@ Show all available CLI options:
 ```bash
 python -m app.cli --help
 ```
+Pixel offsets from center with --offset-x and --offset-y
 
+```bash
+python -m app.cli --template data/template.png --offset-y -100
+python -m app.cli --offset-x 50 --offset-y -120
+```
 ## Planned features
 
-* Frame/template support
-* Product positioning settings
 * Optional background removal
 * Processing report export
 * Parallel image processing
