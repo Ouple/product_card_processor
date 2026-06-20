@@ -11,6 +11,14 @@ def calculate_fit_size(original_width, original_height, max_width, max_height, a
     return new_width, new_height
 
 
+def calculate_scaled_fit_area(base_width, base_height, product_scale):
+    if product_scale <= 0 or product_scale > 1:
+        raise ValueError(f"product_scale must be between 0 and 1, but got {product_scale}")
+    target_width = int(base_width * product_scale)
+    target_height = int(base_height * product_scale)
+    return target_width, target_height
+
+
 def resize_to_fit(image, max_width, max_height, allow_upscale=True):
     original_width, original_height = image.size
     new_width, new_height = calculate_fit_size(

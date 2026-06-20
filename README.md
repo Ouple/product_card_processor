@@ -4,14 +4,18 @@ A Python CLI tool for preparing product images for marketplace cards.
 
 ## Current version
 
-v0.8 — template/background support
+v0.10 — relative product scaling
 
 ## Features
 
 * Processes all supported images from an input folder
 * Supports batch image processing
-* Resizes each image to fit within configurable size limits
-* Places each image on a configurable canvas
+* Resizes product images relative to the canvas or template size
+* Places product images on a configurable canvas or custom template
+* Supports custom template/background images
+* Uses the template size as the output size when a template is provided
+* Uses canvas width and height when no template is provided
+* Supports pixel offsets from the center with `--offset-x` and `--offset-y`
 * Saves processed images to an output folder
 * Creates the output folder automatically
 * Shows friendly errors for missing input folders
@@ -20,10 +24,6 @@ v0.8 — template/background support
 * Prints processed and failed image counts
 * Uses high-quality resize with LANCZOS
 * Supports `--no-upscale` mode for keeping small images at their original size
-- Supports custom template/background images
-- When a template is provided, output size is based on the template size
-- When no template is provided, canvas width and height are used
-- Pixel offsets from center with --offset-x and --offset-y
 
 ## Supported file extensions
 
@@ -40,15 +40,28 @@ Basic usage:
 python -m app.cli --input data/input --output data/output
 ```
 
-Custom canvas and product size:
+Use a custom canvas size:
 
 ```bash
-python -m app.cli --canvas-width 1200 --canvas-height 1600 --max-image-width 1000 --max-image-height 1300
+python -m app.cli --canvas-width 1200 --canvas-height 1600
 ```
-User Template
+
+Use relative product scaling:
+
+```bash
+python -m app.cli --product-scale 0.8
+```
+
+Use a custom template/background:
 
 ```bash
 python -m app.cli --template data/template.png
+```
+
+Use a template with relative product scaling:
+
+```bash
+python -m app.cli --template data/template.png --product-scale 0.6
 ```
 
 Disable upscaling for small images:
@@ -57,17 +70,22 @@ Disable upscaling for small images:
 python -m app.cli --no-upscale
 ```
 
+Move the product from the center using pixel offsets:
+
+```bash
+python -m app.cli --template data/template.png --offset-y -100
+```
+
+```bash
+python -m app.cli --offset-x 50 --offset-y -120
+```
+
 Show all available CLI options:
 
 ```bash
 python -m app.cli --help
 ```
-Pixel offsets from center with --offset-x and --offset-y
 
-```bash
-python -m app.cli --template data/template.png --offset-y -100
-python -m app.cli --offset-x 50 --offset-y -120
-```
 ## Planned features
 
 * Optional background removal

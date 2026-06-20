@@ -1,27 +1,30 @@
 from app.image_io import load_image, save_image, get_image_paths
 
-from app.transforms import resize_to_fit, create_centered_canvas, paste_centered
+from app.transforms import (resize_to_fit,
+                            paste_centered,
+                            calculate_scaled_fit_area,
+                            create_blank_canvas)
 
 
 class ImageProcessor:
 
     def __init__(self, input_folder, output_folder,
                  canvas_width, canvas_height,
-                 max_image_width, max_image_height,
                  allow_upscale=True, template_path=None,
-                 offset_x=0, offset_y=0):
+                 offset_x=0, offset_y=0, product_scale=0.8):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
-        self.max_image_width = max_image_width
-        self.max_image_height = max_image_height
+        self.max_image_width = None
+        self.max_image_height = None
         self.allow_upscale = allow_upscale
         self.template_path = template_path
         self.processed_count = 0
         self.failed_count = 0
         self.offset_x = offset_x
         self.offset_y = offset_y
+        self.product_scale = product_scale
 
     def get_settings(self):
         return {"input_folder": self.input_folder,
@@ -33,28 +36,34 @@ class ImageProcessor:
                 "allow_upscale": self.allow_upscale,
                 "template_path": self.template_path,
                 "offset_x": self.offset_x,
-                "offset_y": self.offset_y
+                "offset_y": self.offset_y,
+                "product_scale": self.product_scale
                 }
 
     def process_single_image(self, image_path):
         image = load_image(image_path)
+
+        if self.template_path:
+            background = load_image(self.template_path)
+        else:
+            background = create_blank_canvas(self.canvas_width, self.canvas_height)
+
+        base_width, base_height = background.size
+
+        target_width, target_height = calculate_scaled_fit_area(base_width,
+                                                                base_height,
+                                                                self.product_scale
+                                                                )
         resized_image = resize_to_fit(image,
-                                      self.max_image_width,
-                                      self.max_image_height,
+                                      target_width,
+                                      target_height,
                                       allow_upscale=self.allow_upscale
                                       )
-        if self.template_path:
-            template = load_image(self.template_path)
-            canvas = paste_centered(template,
-                                    resized_image,
-                                    offset_x=self.offset_x,
-                                    offset_y=self.offset_y)
-        else:
-            canvas = create_centered_canvas(resized_image,
-                                            self.canvas_width,
-                                            self.canvas_height,
-                                            offset_x=self.offset_x,
-                                            offset_y=self.offset_y)
+        canvas = paste_centered(background,
+                                resized_image,
+                                offset_x=self.offset_x,
+                                offset_y=self.offset_y
+                                )
 
         output_path = self.output_folder / image_path.name
         save_image(canvas, output_path)

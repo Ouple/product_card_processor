@@ -3,7 +3,7 @@ from pathlib import Path
 
 from app.processor import ImageProcessor
 
-from app.config import INPUT_FOLDER, OUTPUT_FOLDER, CANVAS_WIDTH, CANVAS_HEIGHT, MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT
+from app.config import INPUT_FOLDER, OUTPUT_FOLDER, CANVAS_WIDTH, CANVAS_HEIGHT
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -32,26 +32,14 @@ def parse_args():
                         default=CANVAS_HEIGHT,
                         help='Canvas height in pixels'
                         )
-
-    parser.add_argument("--max-image-width",
-                        type=int,
-                        default=MAX_IMAGE_WIDTH,
-                        help='Max image width in pixels'
-                        )
-
-    parser.add_argument("--max-image-height",
-                        type=int,
-                        default=MAX_IMAGE_HEIGHT,
-                        help='Max image height in pixels'
-                        )
     parser.add_argument("--no-upscale",
                         action="store_true",
-                        help='no upscale mode'
+                        help='no upscale mode, do not enlarge images smaller than the target size'
                         )
     parser.add_argument("--template",
                         type=Path,
                         default=None,
-                        help="Template canvas"
+                        help="Template/background image path"
                         )
     parser.add_argument("--offset-x",
                         type=int,
@@ -62,6 +50,10 @@ def parse_args():
                         type=int,
                         default=0,
                         help="Vertical offset from center in pixels")
+    parser.add_argument("--product-scale",
+                        type=float,
+                        default=0.8,
+                        help="Product size scale factor, product size relative to background size, from 0 to 1")
 
     return parser.parse_args()
 
@@ -72,13 +64,12 @@ processor = ImageProcessor(
     output_folder=args.output,
     canvas_width=args.canvas_width,
     canvas_height=args.canvas_height,
-    max_image_width=args.max_image_width,
-    max_image_height=args.max_image_height,
     allow_upscale=not args.no_upscale,
     template_path = args.template,
     offset_x=args.offset_x,
-    offset_y=args.offset_y
-)
+    offset_y=args.offset_y,
+    product_scale=args.product_scale
+    )
 
 try:
     processed_count = processor.process_all_images()
