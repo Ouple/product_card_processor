@@ -4,7 +4,7 @@ A Python CLI tool for preparing product images for marketplace cards.
 
 ## Current version
 
-v0.10 — relative product scaling
+v0.11 — background removal with rembg backend
 
 ## Features
 
@@ -16,6 +16,10 @@ v0.10 — relative product scaling
 * Uses the template size as the output size when a template is provided
 * Uses canvas width and height when no template is provided
 * Supports pixel offsets from the center with `--offset-x` and `--offset-y`
+* Supports relative product scaling with `--product-scale`
+* Supports optional background removal with `--remove-bg`
+* Supports background removal backend selection with `--bg-backend`
+* Correctly pastes transparent RGBA images using an alpha mask
 * Saves processed images to an output folder
 * Creates the output folder automatically
 * Shows friendly errors for missing input folders
@@ -31,6 +35,16 @@ v0.10 — relative product scaling
 * `.jpeg`
 * `.png`
 * `.webp`
+
+## Requirements
+
+The project uses `rembg` with CPU support for background removal.
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## How to run
 
@@ -64,6 +78,18 @@ Use a template with relative product scaling:
 python -m app.cli --template data/template.png --product-scale 0.6
 ```
 
+Remove product background before placing it on the template:
+
+```bash
+python -m app.cli --remove-bg --template data/template.png --product-scale 0.6
+```
+
+Remove product background with a selected backend:
+
+```bash
+python -m app.cli --remove-bg --bg-backend rembg --template data/template.png --product-scale 0.6
+```
+
 Disable upscaling for small images:
 
 ```bash
@@ -86,10 +112,25 @@ Show all available CLI options:
 python -m app.cli --help
 ```
 
+## Example result
+
+The tool can take a source product image, remove its background, resize it relative to a template, and place it on a marketplace-style product card.
+
+Example command:
+
+```bash
+python -m app.cli --remove-bg --bg-backend rembg --template data/template.png --product-scale 0.6
+```
+
 ## Planned features
 
-* Optional background removal
+* Reuse rembg sessions for faster batch processing
+* Support multiple background removal models
+* Compare background removal models by quality and speed
+* Add alpha matting options for better edge quality
+* Add mask diagnostics mode
 * Processing report export
 * Parallel image processing
 * Docker support
+* FastAPI backend
 * Web interface
