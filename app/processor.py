@@ -4,6 +4,7 @@ from app.transforms import (resize_to_fit,
                             paste_centered,
                             calculate_scaled_fit_area,
                             create_blank_canvas)
+from app.background_removal import remove_background
 
 
 class ImageProcessor:
@@ -11,7 +12,7 @@ class ImageProcessor:
     def __init__(self, input_folder, output_folder,
                  canvas_width, canvas_height,
                  allow_upscale=True, template_path=None,
-                 offset_x=0, offset_y=0, product_scale=0.8):
+                 offset_x=0, offset_y=0, product_scale=0.8, remove_bg=False, bg_backend="rembg"):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
@@ -25,23 +26,28 @@ class ImageProcessor:
         self.offset_x = offset_x
         self.offset_y = offset_y
         self.product_scale = product_scale
+        self.remove_bg = remove_bg
+        self.bg_backend = bg_backend
 
     def get_settings(self):
         return {"input_folder": self.input_folder,
                 "output_folder": self.output_folder,
                 "canvas_width": self.canvas_width,
                 "canvas_height": self.canvas_height,
-                "max_image_width": self.max_image_width,
-                "max_image_height": self.max_image_height,
                 "allow_upscale": self.allow_upscale,
                 "template_path": self.template_path,
                 "offset_x": self.offset_x,
                 "offset_y": self.offset_y,
-                "product_scale": self.product_scale
+                "product_scale": self.product_scale,
+                "remove_bg": self.remove_bg,
+                "bg_backend": self.bg_backend
                 }
 
     def process_single_image(self, image_path):
         image = load_image(image_path)
+
+        if self.remove_bg:
+            image = remove_background(image, backend=self.bg_backend)
 
         if self.template_path:
             background = load_image(self.template_path)

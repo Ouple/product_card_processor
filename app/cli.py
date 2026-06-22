@@ -53,9 +53,21 @@ def parse_args():
     parser.add_argument("--product-scale",
                         type=float,
                         default=0.8,
-                        help="Product size scale factor, product size relative to background size, from 0 to 1")
+                        help="Product size scale factor, product size relative to background size, from 0 to 1"
+                        )
+    parser.add_argument("--remove-bg",
+                        action="store_true",
+                        help="Remove product background before placing it on canvas"
+                        )
+    parser.add_argument("--bg-backend",
+                        type=str,
+                        choices=["rembg"],
+                        default="rembg",
+                        help="Background removal backend"
+                        )
 
     return parser.parse_args()
+
 
 args = parse_args()
 
@@ -68,7 +80,9 @@ processor = ImageProcessor(
     template_path = args.template,
     offset_x=args.offset_x,
     offset_y=args.offset_y,
-    product_scale=args.product_scale
+    product_scale=args.product_scale,
+    remove_bg=args.remove_bg,
+    bg_backend=args.bg_backend
     )
 
 try:

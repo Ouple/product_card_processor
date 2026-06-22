@@ -41,7 +41,11 @@ def paste_centered(background, image, offset_x=0, offset_y=0):
     x = ((canvas_width - image_width) // 2) + offset_x
     y = ((canvas_height - image_height) // 2) + offset_y
     canvas = background.copy()
-    canvas.paste(image, (x, y))
+    if "A" in image.getbands():
+        mask = image.getchannel("A")
+        canvas.paste(image, (x, y), mask=mask)
+    else:
+        canvas.paste(image, (x, y))
     return canvas
 
 
