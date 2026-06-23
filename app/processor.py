@@ -4,7 +4,7 @@ from app.transforms import (resize_to_fit,
                             paste_centered,
                             calculate_scaled_fit_area,
                             create_blank_canvas)
-from app.background_removal import remove_background
+from app.background_removal import remove_background, create_background_removal_session
 
 
 class ImageProcessor:
@@ -12,7 +12,7 @@ class ImageProcessor:
     def __init__(self, input_folder, output_folder,
                  canvas_width, canvas_height,
                  allow_upscale=True, template_path=None,
-                 offset_x=0, offset_y=0, product_scale=0.8, remove_bg=False, bg_backend="rembg"):
+                 offset_x=0, offset_y=0, product_scale=0.8, remove_bg=False, bg_backend="rembg", bg_session=None):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
@@ -28,6 +28,7 @@ class ImageProcessor:
         self.product_scale = product_scale
         self.remove_bg = remove_bg
         self.bg_backend = bg_backend
+        self.bg_session = bg_session
 
     def get_settings(self):
         return {"input_folder": self.input_folder,
@@ -47,7 +48,7 @@ class ImageProcessor:
         image = load_image(image_path)
 
         if self.remove_bg:
-            image = remove_background(image, backend=self.bg_backend)
+            image = remove_background(image, backend=self.bg_backend, session=self.bg_session)
 
         if self.template_path:
             background = load_image(self.template_path)
@@ -90,7 +91,10 @@ class ImageProcessor:
 
         if not image_paths:
             raise ValueError(f"No images found in input folder: {self.input_folder}")
-
+        if self.remove_bg:
+            self.bg_session = create_background_removal_session(backend=self.bg_backend,
+                                                                model_name="u2net"
+                                                                )
         for image_path in image_paths:
             try:
                 output_path = self.process_single_image(image_path)
