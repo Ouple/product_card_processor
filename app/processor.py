@@ -12,7 +12,8 @@ class ImageProcessor:
     def __init__(self, input_folder, output_folder,
                  canvas_width, canvas_height,
                  allow_upscale=True, template_path=None,
-                 offset_x=0, offset_y=0, product_scale=0.8, remove_bg=False, bg_backend="rembg", bg_session=None):
+                 offset_x=0, offset_y=0, product_scale=0.8,
+                 remove_bg=False, bg_backend="rembg", bg_session=None, bg_model="u2net"):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
@@ -29,6 +30,7 @@ class ImageProcessor:
         self.remove_bg = remove_bg
         self.bg_backend = bg_backend
         self.bg_session = bg_session
+        self.bg_model = bg_model
 
     def get_settings(self):
         return {"input_folder": self.input_folder,
@@ -41,7 +43,8 @@ class ImageProcessor:
                 "offset_y": self.offset_y,
                 "product_scale": self.product_scale,
                 "remove_bg": self.remove_bg,
-                "bg_backend": self.bg_backend
+                "bg_backend": self.bg_backend,
+                "bg_model": self.bg_model
                 }
 
     def process_single_image(self, image_path):
@@ -93,7 +96,7 @@ class ImageProcessor:
             raise ValueError(f"No images found in input folder: {self.input_folder}")
         if self.remove_bg:
             self.bg_session = create_background_removal_session(backend=self.bg_backend,
-                                                                model_name="u2net"
+                                                                model_name=self.bg_model,
                                                                 )
         for image_path in image_paths:
             try:

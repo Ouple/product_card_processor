@@ -65,6 +65,11 @@ def parse_args():
                         default="rembg",
                         help="Background removal backend"
                         )
+    parser.add_argument("--bg-model",
+                        choices=["u2net", "isnet-general-use", "birefnet-general"],
+                        type=str,
+                        default="u2net",
+                        help="Background removal model")
 
     return parser.parse_args()
 
@@ -82,7 +87,8 @@ processor = ImageProcessor(
     offset_y=args.offset_y,
     product_scale=args.product_scale,
     remove_bg=args.remove_bg,
-    bg_backend=args.bg_backend
+    bg_backend=args.bg_backend,
+    bg_model=args.bg_model,
     )
 
 try:
