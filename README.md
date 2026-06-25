@@ -6,7 +6,7 @@ The tool can batch-process product images, resize them relative to a canvas or t
 
 ## Current version
 
-v0.13 — background removal model selection
+v0.14 — background removal model comparison
 
 ## Features
 
@@ -50,7 +50,9 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Background removal models are downloaded automatically on first use. Large models may require additional disk space and may take longer to download.
+Background removal models are downloaded automatically on first use.
+
+Large models may require additional disk space and may take longer to download. For example, `birefnet-general` is significantly heavier than the default model.
 
 ## Basic usage
 
@@ -142,11 +144,11 @@ python -m app.cli --remove-bg --bg-model birefnet-general --template data/templa
 
 ## Supported background removal models
 
-| Model               | Description                                      | Notes                                                                                      |
-| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `u2net`             | Default general-purpose background removal model | Good baseline model                                                                        |
-| `isnet-general-use` | General-purpose object segmentation model        | Useful alternative to `u2net`                                                              |
-| `birefnet-general`  | Larger general-purpose segmentation model        | May provide better quality, but requires significantly more disk space and processing time |
+| Model               | Description                                      | Notes                                                          |
+| ------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
+| `u2net`             | Default general-purpose background removal model | Good lightweight baseline                                      |
+| `isnet-general-use` | General-purpose object segmentation model        | Best balance in the current tests                              |
+| `birefnet-general`  | Larger general-purpose segmentation model        | Best quality in the current tests, but much heavier and slower |
 
 ## Model comparison workflow
 
@@ -170,9 +172,29 @@ python -m app.cli --remove-bg --bg-model isnet-general-use --template data/templ
 python -m app.cli --remove-bg --bg-model birefnet-general --template data/template.png --product-scale 0.6 --output data/output/birefnet-general
 ```
 
+## Performance measurement
+
+Processing time was measured locally with PowerShell `Measure-Command`.
+
+Example:
+
+```powershell
+Measure-Command { python -m app.cli --remove-bg --bg-model u2net --template data/template.png --product-scale 0.6 --output data/output/u2net }
+```
+
+The measurements below are based on the current local test set and environment. Actual results may vary depending on hardware, image resolution, number of files, and whether the model has already been downloaded.
+
+| Model               | Total time, seconds |            Relative speed | Notes                                 |
+| ------------------- | ------------------: | ------------------------: | ------------------------------------- |
+| `u2net`             |                6.85 |                      1.0x | Fastest tested model                  |
+| `isnet-general-use` |               12.89 |  1.9x slower than `u2net` | Slower, but better quality            |
+| `birefnet-general`  |              185.24 | 27.0x slower than `u2net` | Best quality, but very slow and heavy |
+
 ## Model comparison criteria
 
-The models can be compared by:
+The models were compared manually using real automotive product images.
+
+The main criteria were:
 
 * object edge quality
 * preservation of small details
@@ -184,13 +206,81 @@ The models can be compared by:
 
 ## Current observations
 
-`u2net` is a good default baseline model.
+The following models were tested:
 
-`isnet-general-use` can produce different masks and should be tested on real product images before choosing a default.
+* `u2net`
+* `isnet-general-use`
+* `birefnet-general`
 
-`birefnet-general` may provide higher-quality segmentation on difficult images, but it is much heavier than the other options and may be slower to download and run.
+### U2Net
 
-For production usage, model choice should depend on the trade-off between quality, speed, and disk space.
+`u2net` works as a solid baseline model.
+
+It handles simple product shapes reasonably well, but it shows weaker results on more difficult geometry, especially inner cutouts, holes, and complex object boundaries.
+
+It was the fastest model in the current test run.
+
+Recommended role:
+
+* lightweight baseline
+* fastest tested option
+* useful when speed and model size matter more than maximum quality
+
+### IS-Net general use
+
+`isnet-general-use` produced cleaner masks than `u2net` in the tested examples.
+
+It handled several product images more accurately and provided a better balance between quality and practical usability.
+
+It was slower than `u2net`, but still much faster than `birefnet-general`.
+
+Recommended role:
+
+* best balanced option
+* good candidate for the default model
+* suitable for regular batch processing
+
+### BiRefNet general
+
+`birefnet-general` produced the best masks in the tested examples.
+
+It handled complex product geometry and inner cutouts better than the other tested models. However, it is significantly heavier and much slower.
+
+In the current test run, it was about 27 times slower than `u2net`.
+
+Recommended role:
+
+* best quality option
+* useful for difficult product images
+* suitable when quality is more important than speed and model size
+
+## Model comparison summary
+
+| Model               | Quality   | Speed     | Practicality | Notes                                                 |
+| ------------------- | --------- | --------- | ------------ | ----------------------------------------------------- |
+| `u2net`             | Medium    | Fast      | High         | Good lightweight baseline, weaker on difficult shapes |
+| `isnet-general-use` | High      | Medium    | High         | Best balance between quality and usability            |
+| `birefnet-general`  | Very high | Very slow | Medium       | Best quality, but heavy and much slower               |
+
+## Recommended usage
+
+For most regular product images:
+
+```bash
+python -m app.cli --remove-bg --bg-model isnet-general-use --template data/template.png --product-scale 0.6
+```
+
+For faster lightweight processing:
+
+```bash
+python -m app.cli --remove-bg --bg-model u2net --template data/template.png --product-scale 0.6
+```
+
+For best quality on difficult product images:
+
+```bash
+python -m app.cli --remove-bg --bg-model birefnet-general --template data/template.png --product-scale 0.6
+```
 
 ## Example result
 
@@ -199,12 +289,32 @@ The tool can take a source product image, remove its background, resize it relat
 Example command:
 
 ```bash
-python -m app.cli --remove-bg --bg-backend rembg --bg-model u2net --template data/template.png --product-scale 0.6
+python -m app.cli --remove-bg --bg-backend rembg --bg-model isnet-general-use --template data/template.png --product-scale 0.6
 ```
 
-## Planned features
+## Project roadmap
+
+### Completed
+
+* `v0.1` — project structure
+* `v0.2` — single image processing
+* `v0.3` — batch image processing
+* `v0.4` — centered product card generation
+* `v0.5` — configurable CLI arguments
+* `v0.6` — friendly error handling
+* `v0.7` — improved resize behavior and `--no-upscale`
+* `v0.8` — template/background support
+* `v0.9` — pixel offsets from center
+* `v0.10` — relative product scaling
+* `v0.11` — background removal with rembg backend
+* `v0.12` — rembg session reuse for faster batch processing
+* `v0.13` — background removal model selection
+* `v0.14` — background removal model comparison
+
+### Planned features
 
 * Add alpha matting options for better edge quality
+* Add post-processing options for masks
 * Add mask diagnostics mode
 * Add processing report export
 * Add parallel image processing
