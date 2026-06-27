@@ -1,0 +1,25 @@
+{
+    "processed_count": 11,
+    "failed_count": 1,
+    "failed_files": [
+        {
+            "image_path": "data\\input\\broken.jpg",
+            "reason": "cannot identify image file 'data\\\\input\\\\broken.jpg'"
+        }
+    ],
+    "settings": {
+        "input_folder": "data\\input",
+        "output_folder": "data\\output",
+        "canvas_width": 1080,
+        "canvas_height": 1440,
+        "allow_upscale": true,
+        "template_path": "data\\template.png",
+        "offset_x": 0,
+        "offset_y": 0,
+        "product_scale": 0.6,
+        "remove_bg": true,
+        "bg_backend": "rembg",
+        "bg_model": "isnet-general-use"
+    },
+    "processing_time_seconds": 12.515
+}

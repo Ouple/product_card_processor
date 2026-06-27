@@ -1,3 +1,6 @@
+from pathlib import Path
+import time
+
 from app.image_io import load_image, save_image, get_image_paths
 
 from app.transforms import (resize_to_fit,
@@ -6,6 +9,7 @@ from app.transforms import (resize_to_fit,
                             create_blank_canvas)
 from app.background_removal import remove_background, create_background_removal_session
 
+import json
 
 class ImageProcessor:
 
@@ -24,6 +28,7 @@ class ImageProcessor:
         self.template_path = template_path
         self.processed_count = 0
         self.failed_count = 0
+        self.failed_files = []
         self.offset_x = offset_x
         self.offset_y = offset_y
         self.product_scale = product_scale
@@ -31,14 +36,15 @@ class ImageProcessor:
         self.bg_backend = bg_backend
         self.bg_session = bg_session
         self.bg_model = bg_model
+        self.processing_time_seconds = None
 
     def get_settings(self):
-        return {"input_folder": self.input_folder,
-                "output_folder": self.output_folder,
+        return {"input_folder": str(self.input_folder),
+                "output_folder": str(self.output_folder),
                 "canvas_width": self.canvas_width,
                 "canvas_height": self.canvas_height,
                 "allow_upscale": self.allow_upscale,
-                "template_path": self.template_path,
+                "template_path": str(self.template_path) if self.template_path else None,
                 "offset_x": self.offset_x,
                 "offset_y": self.offset_y,
                 "product_scale": self.product_scale,
@@ -46,6 +52,22 @@ class ImageProcessor:
                 "bg_backend": self.bg_backend,
                 "bg_model": self.bg_model
                 }
+
+    def get_report(self):
+        return {
+            "processed_count": self.processed_count,
+            "failed_count": self.failed_count,
+            "failed_files": self.failed_files,
+            "settings": self.get_settings(),
+            "processing_time_seconds": round(self.processing_time_seconds,3) if self.processing_time_seconds else None
+        }
+    def save_report(self, report_path):
+        report = self.get_report()
+        report_path = Path(report_path)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(report_path, "w", encoding="utf-8") as file:
+            json.dump(report, file, indent=4, ensure_ascii=False)
 
     def process_single_image(self, image_path):
         image = load_image(image_path)
@@ -94,6 +116,7 @@ class ImageProcessor:
 
         if not image_paths:
             raise ValueError(f"No images found in input folder: {self.input_folder}")
+        start_time = time.perf_counter()
         if self.remove_bg:
             self.bg_session = create_background_removal_session(backend=self.bg_backend,
                                                                 model_name=self.bg_model,
@@ -101,10 +124,16 @@ class ImageProcessor:
         for image_path in image_paths:
             try:
                 output_path = self.process_single_image(image_path)
+                end_time = time.perf_counter()
+                self.processing_time_seconds = end_time - start_time
                 print(output_path)
             except OSError as error:
                 print(f"File was not processed: {image_path}\nReason: {error}")
                 self.failed_count += 1
+                self.failed_files.append({
+                    "image_path": str(image_path),
+                    "reason": str(error)
+                })
 
         return self.processed_count
 

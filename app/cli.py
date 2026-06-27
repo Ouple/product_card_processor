@@ -69,8 +69,17 @@ def parse_args():
                         choices=["u2net", "isnet-general-use", "birefnet-general"],
                         type=str,
                         default="u2net",
-                        help="Background removal model")
-
+                        help="Background removal model"
+                        )
+    parser.add_argument("--save-report",
+                        action="store_true",
+                        help="Save report"
+                        )
+    parser.add_argument("--report-path",
+                        type=Path,
+                        default=Path("data/output/report.json"),
+                        help="Path to JSON processing report"
+                        )
     return parser.parse_args()
 
 
@@ -93,6 +102,9 @@ processor = ImageProcessor(
 
 try:
     processed_count = processor.process_all_images()
+    if args.save_report:
+        processor.save_report(args.report_path)
+        print("report saved to:", args.report_path)
     print(f"Processed images {processed_count}")
     print(f"Failed images {processor.failed_count}")
 
