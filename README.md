@@ -2,36 +2,37 @@
 
 A Python CLI tool for preparing product images for marketplace cards.
 
-The tool can batch-process product images, resize them relative to a canvas or template, optionally remove the background with neural network models, and place the product image onto a marketplace-style card.
+The tool can batch-process product images, resize them relative to a canvas or template, optionally remove the background with neural network models, and place the processed product image onto a marketplace-style card.
+
+## Demo
+
+![Product card processing demo](docs/assets/demo.gif)
 
 ## Current version
 
-v0.14 — background removal model comparison
+v0.16 — README demo GIF
 
-## Features
+## Key features
 
-* Processes all supported images from an input folder
-* Supports batch image processing
-* Resizes product images relative to the canvas or template size
-* Places product images on a configurable canvas or custom template
-* Supports custom template/background images
-* Uses the template size as the output size when a template is provided
-* Uses canvas width and height when no template is provided
-* Supports relative product scaling with `--product-scale`
-* Supports pixel offsets from the center with `--offset-x` and `--offset-y`
-* Supports optional background removal with `--remove-bg`
-* Supports background removal backend selection with `--bg-backend`
-* Supports background removal model selection with `--bg-model`
-* Reuses rembg sessions for faster batch processing
-* Correctly pastes transparent RGBA images using an alpha mask
-* Saves processed images to an output folder
-* Creates the output folder automatically
-* Shows friendly errors for missing input folders
-* Shows friendly errors for empty input folders
-* Skips broken images without stopping batch processing
-* Prints processed and failed image counts
-* Uses high-quality resize with LANCZOS
-* Supports `--no-upscale` mode for keeping small images at their original size
+* Batch processing of product images
+* Support for `.jpg`, `.jpeg`, `.png`, and `.webp`
+* Product resizing relative to a canvas or template
+* Custom canvas size support
+* Custom template/background support
+* Product positioning with `--offset-x` and `--offset-y`
+* Relative product scaling with `--product-scale`
+* Optional background removal with neural network models
+* Background removal backend selection with `--bg-backend`
+* Background removal model selection with `--bg-model`
+* Reuse of rembg sessions for faster batch processing
+* Correct handling of transparent RGBA images using alpha masks
+* JSON processing report export
+* Processing time measurement in reports
+* Failed file tracking
+* Friendly errors for missing or empty input folders
+* Broken image skipping without stopping the whole batch
+* High-quality resize with LANCZOS
+* Optional `--no-upscale` mode for small images
 
 ## Supported file extensions
 
@@ -149,6 +150,52 @@ python -m app.cli --remove-bg --bg-model birefnet-general --template data/templa
 | `u2net`             | Default general-purpose background removal model | Good lightweight baseline                                      |
 | `isnet-general-use` | General-purpose object segmentation model        | Best balance in the current tests                              |
 | `birefnet-general`  | Larger general-purpose segmentation model        | Best quality in the current tests, but much heavier and slower |
+
+## JSON processing report
+
+The tool can save a JSON report with processing statistics, selected settings, failed files, and total processing time.
+
+Save a report to the default path:
+
+```bash
+python -m app.cli --remove-bg --bg-model isnet-general-use --template data/template.png --product-scale 0.6 --save-report
+```
+
+Save a report to a custom path:
+
+```bash
+python -m app.cli --remove-bg --bg-model isnet-general-use --template data/template.png --product-scale 0.6 --save-report --report-path reports/test_report.json
+```
+
+Example report structure:
+
+```json
+{
+    "processed_count": 11,
+    "failed_count": 1,
+    "failed_files": [
+        {
+            "image_path": "data\\input\\broken.jpg",
+            "reason": "cannot identify image file"
+        }
+    ],
+    "settings": {
+        "input_folder": "data\\input",
+        "output_folder": "data\\output",
+        "canvas_width": 1080,
+        "canvas_height": 1440,
+        "allow_upscale": true,
+        "template_path": "data\\template.png",
+        "offset_x": 0,
+        "offset_y": 0,
+        "product_scale": 0.6,
+        "remove_bg": true,
+        "bg_backend": "rembg",
+        "bg_model": "isnet-general-use"
+    },
+    "processing_time_seconds": 17.45
+}
+```
 
 ## Model comparison workflow
 
@@ -282,14 +329,18 @@ For best quality on difficult product images:
 python -m app.cli --remove-bg --bg-model birefnet-general --template data/template.png --product-scale 0.6
 ```
 
-## Example result
+## Demo GIF generation
 
-The tool can take a source product image, remove its background, resize it relative to a template, and place it on a marketplace-style product card.
-
-Example command:
+The README demo GIF can be regenerated from two prepared frames:
 
 ```bash
-python -m app.cli --remove-bg --bg-backend rembg --bg-model isnet-general-use --template data/template.png --product-scale 0.6
+python tools/make_gif.py
+```
+
+Expected output:
+
+```text
+docs/assets/demo.gif
 ```
 
 ## Project roadmap
@@ -310,13 +361,14 @@ python -m app.cli --remove-bg --bg-backend rembg --bg-model isnet-general-use --
 * `v0.12` — rembg session reuse for faster batch processing
 * `v0.13` — background removal model selection
 * `v0.14` — background removal model comparison
+* `v0.15` — JSON processing report
+* `v0.16` — README demo GIF
 
 ### Planned features
 
 * Add alpha matting options for better edge quality
 * Add post-processing options for masks
 * Add mask diagnostics mode
-* Add processing report export
 * Add parallel image processing
 * Add Docker support
 * Add FastAPI backend
