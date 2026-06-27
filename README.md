@@ -6,7 +6,7 @@ The tool can batch-process product images, resize them relative to a canvas or t
 
 ## Demo
 
-![Product card processing demo](docs/assets/demo.gif)
+![Product card processing demo](docs/assets/demo_frames/demo.gif)
 
 ## Current version
 
