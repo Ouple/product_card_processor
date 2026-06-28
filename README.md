@@ -74,17 +74,36 @@ product_card_processor/
 
 ## Requirements
 
-The project uses `rembg` with CPU support for background removal.
+The project can be run in two ways:
 
-Install dependencies:
+* locally with Python
+* inside Docker
+
+### Local Python setup
+
+For local execution, install the project dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Background removal models are downloaded automatically on first use.
+The project uses `rembg` with CPU support for optional background removal.
 
-Large models may require additional disk space and may take longer to download. For example, `birefnet-general` is significantly heavier than the default model.
+Background removal models are downloaded automatically on first use. Large models may require additional disk space and may take longer to download. For example, `birefnet-general` is significantly heavier than the default `u2net` model.
+
+### Docker setup
+
+For Docker execution, local Python dependencies are not required.
+
+Build the Docker image:
+
+```powershell
+docker build -t product-card-processor .
+```
+
+Then run the tool inside a container using mounted input and output folders.
+
+Docker is the recommended option if you want reproducible execution without manually configuring a local Python environment.
 
 ## Basic usage
 
@@ -281,7 +300,7 @@ Example report structure:
 }
 ```
 
-## Docker support
+## Running with Docker
 
 The project can be run inside Docker, so it does not require a local Python virtual environment to process images.
 
