@@ -49,5 +49,5 @@ def make_gif(before_path, after_path, output_path):
 make_gif(
     "docs/assets/demo_frames/before.jpg",
     "docs/assets/demo_frames/after.jpg",
-    "docs/assets/demo_frames/demo.gif"
+    "docs/assets/demo_frames/demo_1.gif"
 )

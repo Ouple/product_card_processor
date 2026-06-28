@@ -1,0 +1,16 @@
+.venv
+__pycache__
+*.pyc
+.git
+.gitignore
+
+data/input
+data/output
+reports
+
+.pytest_cache
+.mypy_cache
+.idea
+
+docs/assets/demo_frames
+data/template_1.png

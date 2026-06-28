@@ -10,7 +10,7 @@ The tool can batch-process product images, resize them relative to a canvas or t
 
 ## Current version
 
-v0.17 — controlled parallel batch processing
+v0.18 — Docker support
 
 ## Key features
 
@@ -34,6 +34,9 @@ v0.17 — controlled parallel batch processing
 * Broken image skipping without stopping the whole batch
 * High-quality resize with LANCZOS
 * Optional `--no-upscale` mode for small images
+* Docker support for reproducible local execution
+* Docker volume support for input/output files
+* Docker model cache volume for background removal models
 
 ## Supported file extensions
 
@@ -41,6 +44,33 @@ v0.17 — controlled parallel batch processing
 * `.jpeg`
 * `.png`
 * `.webp`
+
+## Project structure
+
+```text
+product_card_processor/
+├── app/
+│   ├── __init__.py
+│   ├── background_removal.py
+│   ├── cli.py
+│   ├── config.py
+│   ├── image_io.py
+│   ├── processor.py
+│   └── transforms.py
+├── data/
+│   ├── input/
+│   ├── output/
+│   └── template.png
+├── docs/
+│   └── assets/
+│       └── demo_frames/
+├── tools/
+│   └── make_gif.py
+├── Dockerfile
+├── .dockerignore
+├── requirements.txt
+└── README.md
+```
 
 ## Requirements
 
@@ -183,6 +213,26 @@ python -m app.cli --remove-bg --bg-model birefnet-general --template data/templa
 | `isnet-general-use` | General-purpose object segmentation model        | Best balance in the current tests                              |
 | `birefnet-general`  | Larger general-purpose segmentation model        | Best quality in the current tests, but much heavier and slower |
 
+## Recommended usage
+
+For most regular product images:
+
+```bash
+python -m app.cli --remove-bg --bg-model isnet-general-use --template data/template.png --product-scale 0.6 --workers 2
+```
+
+For faster lightweight processing:
+
+```bash
+python -m app.cli --remove-bg --bg-model u2net --template data/template.png --product-scale 0.6 --workers 4
+```
+
+For best quality on difficult product images:
+
+```bash
+python -m app.cli --remove-bg --bg-model birefnet-general --template data/template.png --product-scale 0.6 --workers 1
+```
+
 ## JSON processing report
 
 The tool can save a JSON report with processing statistics, selected settings, failed files, total file count, worker count, and total processing time.
@@ -230,6 +280,264 @@ Example report structure:
     "processing_time_seconds": 17.45
 }
 ```
+
+## Docker support
+
+The project can be run inside Docker, so it does not require a local Python virtual environment to process images.
+
+Docker support was added in:
+
+```text
+v0.18 — Docker support
+```
+
+## Build Docker image
+
+From the project root, run:
+
+```powershell
+docker build -t product-card-processor .
+```
+
+This command builds a Docker image named:
+
+```text
+product-card-processor
+```
+
+## Run CLI help in Docker
+
+To check that the container starts correctly:
+
+```powershell
+docker run --rm product-card-processor
+```
+
+By default, the container runs:
+
+```powershell
+python -m app.cli --help
+```
+
+So it should print the available CLI arguments.
+
+## Run image processing in Docker without background removal
+
+Input images should be placed in:
+
+```text
+data/input
+```
+
+The processed images will be saved to:
+
+```text
+data/output
+```
+
+PowerShell command:
+
+```powershell
+docker run --rm `
+  -v "${PWD}\data:/app/data" `
+  product-card-processor `
+  python -m app.cli --input data/input --output data/output --template data/template.png --product-scale 0.6 --workers 2 --save-report
+```
+
+Explanation:
+
+```text
+-v "${PWD}\data:/app/data"
+```
+
+mounts the local `data` folder into the container.
+
+This allows Docker to read images from the local folder:
+
+```text
+data/input
+```
+
+and save results back to:
+
+```text
+data/output
+```
+
+## Run image processing in Docker with background removal
+
+Background removal is supported through `rembg`.
+
+For background removal, it is recommended to start with:
+
+```text
+--workers 1
+```
+
+because background removal is more memory-intensive than regular resizing and composition.
+
+PowerShell command:
+
+```powershell
+docker run --rm `
+  -v "${PWD}\data:/app/data" `
+  -v product_card_models:/models `
+  -e U2NET_HOME=/models `
+  product-card-processor `
+  python -m app.cli --input data/input --output data/output_bg --template data/template.png --product-scale 0.6 --remove-bg --bg-model u2net --workers 1 --save-report --report-path data/output_bg/report.json
+```
+
+The processed images will be saved to:
+
+```text
+data/output_bg
+```
+
+The JSON report will be saved to:
+
+```text
+data/output_bg/report.json
+```
+
+## Docker model cache volume
+
+The Docker background removal command uses a Docker volume:
+
+```powershell
+-v product_card_models:/models
+```
+
+and an environment variable:
+
+```powershell
+-e U2NET_HOME=/models
+```
+
+This is needed so that the `rembg` model is downloaded only once and reused between container runs.
+
+Without this volume, the model could be downloaded again when the container is recreated.
+
+The first run with background removal may take longer because the model needs to be downloaded:
+
+```text
+u2net.onnx
+```
+
+After that, repeated runs should start faster.
+
+## Docker example report
+
+Example report created after Docker processing with background removal:
+
+```json
+{
+    "processed_count": 11,
+    "failed_count": 0,
+    "failed_files": [],
+    "total_files": 11,
+    "settings": {
+        "input_folder": "data/input",
+        "output_folder": "data/output_bg",
+        "canvas_width": 1080,
+        "canvas_height": 1440,
+        "allow_upscale": true,
+        "template_path": "data/template.png",
+        "offset_x": 0,
+        "offset_y": 0,
+        "product_scale": 0.6,
+        "remove_bg": true,
+        "bg_backend": "rembg",
+        "bg_model": "u2net",
+        "workers": 1
+    },
+    "processing_time_seconds": 89.569
+}
+```
+
+## Docker commands summary
+
+Build image:
+
+```powershell
+docker build -t product-card-processor .
+```
+
+Run help:
+
+```powershell
+docker run --rm product-card-processor
+```
+
+Run without background removal:
+
+```powershell
+docker run --rm `
+  -v "${PWD}\data:/app/data" `
+  product-card-processor `
+  python -m app.cli --input data/input --output data/output --template data/template.png --product-scale 0.6 --workers 2 --save-report
+```
+
+Run with background removal:
+
+```powershell
+docker run --rm `
+  -v "${PWD}\data:/app/data" `
+  -v product_card_models:/models `
+  -e U2NET_HOME=/models `
+  product-card-processor `
+  python -m app.cli --input data/input --output data/output_bg --template data/template.png --product-scale 0.6 --remove-bg --bg-model u2net --workers 1 --save-report --report-path data/output_bg/report.json
+```
+
+## Docker troubleshooting
+
+### Build fails because of slow package download
+
+If Docker build fails because of a network timeout while installing Python packages, try running the build again:
+
+```powershell
+docker build -t product-card-processor .
+```
+
+If the issue persists, check the `Dockerfile` and make sure `pip` uses increased timeout and retries.
+
+Example:
+
+```dockerfile
+RUN pip install --no-cache-dir --timeout=120 --retries=10 --progress-bar off -r requirements.txt
+```
+
+### Build fails because Docker runs out of memory
+
+If the build fails with a message like:
+
+```text
+cannot allocate memory
+```
+
+increase Docker Desktop resources:
+
+```text
+Docker Desktop → Settings → Resources
+```
+
+Recommended starting point:
+
+```text
+Memory: 4 GB or more
+Swap: 2 GB or more
+```
+
+### Background removal is slow in Docker
+
+Background removal uses neural network inference and is much heavier than regular image resizing.
+
+Start with:
+
+```text
+--workers 1
+```
+
+Then increase worker count carefully if the system has enough memory.
 
 ## Model comparison workflow
 
@@ -343,26 +651,6 @@ Recommended role:
 | `isnet-general-use` | High      | Medium    | High         | Best balance between quality and usability            |
 | `birefnet-general`  | Very high | Very slow | Medium       | Best quality, but heavy and much slower               |
 
-## Recommended usage
-
-For most regular product images:
-
-```bash
-python -m app.cli --remove-bg --bg-model isnet-general-use --template data/template.png --product-scale 0.6 --workers 2
-```
-
-For faster lightweight processing:
-
-```bash
-python -m app.cli --remove-bg --bg-model u2net --template data/template.png --product-scale 0.6 --workers 4
-```
-
-For best quality on difficult product images:
-
-```bash
-python -m app.cli --remove-bg --bg-model birefnet-general --template data/template.png --product-scale 0.6 --workers 1
-```
-
 ## Demo GIF generation
 
 The README demo GIF can be regenerated from two prepared frames:
@@ -381,7 +669,7 @@ docs/assets/demo_frames/after.jpg
 Expected output:
 
 ```text
-docs/assets/demo_frames/demo.gif
+docs/assets/demo_frames/demo_1.gif
 ```
 
 The GIF generation script keeps the original image proportions and fits frames into a shared canvas instead of stretching them.
@@ -407,10 +695,10 @@ The GIF generation script keeps the original image proportions and fits frames i
 * `v0.15` — JSON processing report
 * `v0.16` — README demo GIF
 * `v0.17` — controlled parallel batch processing
+* `v0.18` — Docker support
 
 ### Planned features
 
-* Add Docker support
 * Add FastAPI backend
 * Add web interface
 * Add recursive folder processing
