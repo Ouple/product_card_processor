@@ -1,5 +1,24 @@
-from PIL import Image
 from pathlib import Path
+from PIL import Image, ImageOps
+
+
+def fit_to_canvas(image, canvas_size, background_color="white"):
+    image = image.convert("RGB")
+
+    fitted_image = ImageOps.contain(
+        image,
+        canvas_size,
+        method=Image.Resampling.LANCZOS
+    )
+
+    canvas = Image.new("RGB", canvas_size, background_color)
+
+    x = (canvas.width - fitted_image.width) // 2
+    y = (canvas.height - fitted_image.height) // 2
+
+    canvas.paste(fitted_image, (x, y))
+
+    return canvas
 
 
 def make_gif(before_path, after_path, output_path):
@@ -10,17 +29,20 @@ def make_gif(before_path, after_path, output_path):
     before_image = Image.open(before_path)
     after_image = Image.open(after_path)
 
-    if before_image.size != after_image.size:
-        after_image = after_image.resize(before_image.size)
+    canvas_size = after_image.size
+
+    before_frame = fit_to_canvas(before_image, canvas_size)
+    after_frame = fit_to_canvas(after_image, canvas_size)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    before_image.save(
+    before_frame.save(
         output_path,
         save_all=True,
-        append_images=[after_image],
+        append_images=[after_frame],
         duration=1200,
-        loop=0
+        loop=0,
+        optimize=True,
     )
 
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from app.image_io import load_image, save_image, get_image_paths
 
@@ -17,7 +18,8 @@ class ImageProcessor:
                  canvas_width, canvas_height,
                  allow_upscale=True, template_path=None,
                  offset_x=0, offset_y=0, product_scale=0.8,
-                 remove_bg=False, bg_backend="rembg", bg_session=None, bg_model="u2net"):
+                 remove_bg=False, bg_backend="rembg", bg_session=None,
+                 bg_model="u2net", workers=1):
         self.input_folder = input_folder
         self.output_folder = output_folder
         self.canvas_width = canvas_width
@@ -37,6 +39,10 @@ class ImageProcessor:
         self.bg_session = bg_session
         self.bg_model = bg_model
         self.processing_time_seconds = None
+        self.workers = workers
+        if self.workers < 1:
+            raise ValueError("workers must be greater than or equal to 1")
+        self.total_files = 0
 
     def get_settings(self):
         return {"input_folder": str(self.input_folder),
@@ -50,7 +56,8 @@ class ImageProcessor:
                 "product_scale": self.product_scale,
                 "remove_bg": self.remove_bg,
                 "bg_backend": self.bg_backend,
-                "bg_model": self.bg_model
+                "bg_model": self.bg_model,
+                "workers": self.workers
                 }
 
     def get_report(self):
@@ -58,6 +65,7 @@ class ImageProcessor:
             "processed_count": self.processed_count,
             "failed_count": self.failed_count,
             "failed_files": self.failed_files,
+            "total_files": self.total_files,
             "settings": self.get_settings(),
             "processing_time_seconds": round(self.processing_time_seconds,3) if self.processing_time_seconds else None
         }
@@ -70,40 +78,72 @@ class ImageProcessor:
             json.dump(report, file, indent=4, ensure_ascii=False)
 
     def process_single_image(self, image_path):
-        image = load_image(image_path)
 
-        if self.remove_bg:
-            image = remove_background(image, backend=self.bg_backend, session=self.bg_session)
+        try:
+            image = load_image(image_path)
 
-        if self.template_path:
-            background = load_image(self.template_path)
-        else:
-            background = create_blank_canvas(self.canvas_width, self.canvas_height)
+            if self.remove_bg:
+                image = remove_background(image, backend=self.bg_backend, session=self.bg_session)
 
-        base_width, base_height = background.size
+            if self.template_path:
+                background = load_image(self.template_path)
+            else:
+                background = create_blank_canvas(self.canvas_width, self.canvas_height)
 
-        target_width, target_height = calculate_scaled_fit_area(base_width,
-                                                                base_height,
-                                                                self.product_scale
-                                                                )
-        resized_image = resize_to_fit(image,
-                                      target_width,
-                                      target_height,
-                                      allow_upscale=self.allow_upscale
-                                      )
-        canvas = paste_centered(background,
-                                resized_image,
-                                offset_x=self.offset_x,
-                                offset_y=self.offset_y
-                                )
+            base_width, base_height = background.size
 
-        output_path = self.output_folder / image_path.name
-        save_image(canvas, output_path)
-        self.processed_count += 1
+            target_width, target_height = calculate_scaled_fit_area(base_width,
+                                                                    base_height,
+                                                                    self.product_scale
+                                                                    )
+            resized_image = resize_to_fit(image,
+                                          target_width,
+                                          target_height,
+                                          allow_upscale=self.allow_upscale
+                                          )
+            canvas = paste_centered(background,
+                                    resized_image,
+                                    offset_x=self.offset_x,
+                                    offset_y=self.offset_y
+                                    )
 
-        return output_path
+            output_path = self.output_folder / image_path.name
+
+            save_image(canvas, output_path)
+
+            return {
+            "status": "success",
+            "image_path": str(image_path),
+            "output_path": str(output_path),
+            }
+        except OSError as error:
+            return {
+                "status": "failed",
+                "image_path": str(image_path),
+                "reason": str(error),
+            }
+
+    def handle_result(self, result):
+        if result["status"] == "success":
+            self.processed_count += 1
+            print(f"Processed: {result['output_path']}")
+
+        elif result["status"] == "failed":
+            self.failed_count += 1
+            self.failed_files.append({
+                "image_path": result["image_path"],
+                "reason": result["reason"],
+            })
+            print(f"File was not processed: {result['image_path']}\nReason: {result['reason']}")
+
+        done_count = self.processed_count + self.failed_count
+        print(f"Progress: {done_count}/{self.total_files}")
 
     def process_all_images(self):
+        self.processed_count = 0
+        self.failed_count = 0
+        self.failed_files = []
+
         if not self.input_folder.exists():
             raise FileNotFoundError(f"Input folder does not exist: {self.input_folder}")
 
@@ -114,26 +154,42 @@ class ImageProcessor:
 
         image_paths = get_image_paths(self.input_folder)
 
+
         if not image_paths:
             raise ValueError(f"No images found in input folder: {self.input_folder}")
+
+        self.total_files = len(image_paths)
+
         start_time = time.perf_counter()
         if self.remove_bg:
             self.bg_session = create_background_removal_session(backend=self.bg_backend,
                                                                 model_name=self.bg_model,
                                                                 )
-        for image_path in image_paths:
-            try:
-                output_path = self.process_single_image(image_path)
-                end_time = time.perf_counter()
-                self.processing_time_seconds = end_time - start_time
-                print(output_path)
-            except OSError as error:
-                print(f"File was not processed: {image_path}\nReason: {error}")
-                self.failed_count += 1
-                self.failed_files.append({
-                    "image_path": str(image_path),
-                    "reason": str(error)
-                })
+        if self.remove_bg and self.workers > 2:
+            print(
+                "Warning: background removal with multiple workers may increase memory usage. "
+                "Consider using --workers 1 or --workers 2 for heavy models."
+            )
+
+        if self.workers == 1:
+            for image_path in image_paths:
+                result = self.process_single_image(image_path)
+                self.handle_result(result)
+
+        else:
+            with ThreadPoolExecutor(max_workers=self.workers) as executor:
+                futures = [
+                    executor.submit(self.process_single_image, image_path)
+                    for image_path in image_paths
+                ]
+
+                for future in as_completed(futures):
+                    result = future.result()
+                    self.handle_result(result)
+
+
+        end_time = time.perf_counter()
+        self.processing_time_seconds = end_time - start_time
 
         return self.processed_count
 

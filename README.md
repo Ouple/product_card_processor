@@ -10,7 +10,7 @@ The tool can batch-process product images, resize them relative to a canvas or t
 
 ## Current version
 
-v0.16 — README demo GIF
+v0.17 — controlled parallel batch processing
 
 ## Key features
 
@@ -26,9 +26,10 @@ v0.16 — README demo GIF
 * Background removal model selection with `--bg-model`
 * Reuse of rembg sessions for faster batch processing
 * Correct handling of transparent RGBA images using alpha masks
+* Controlled parallel batch processing with `--workers`
+* Progress output during batch processing
 * JSON processing report export
-* Processing time measurement in reports
-* Failed file tracking
+* Total file count, worker count, failed files, and processing time in reports
 * Friendly errors for missing or empty input folders
 * Broken image skipping without stopping the whole batch
 * High-quality resize with LANCZOS
@@ -68,6 +69,37 @@ Show all available CLI options:
 ```bash
 python -m app.cli --help
 ```
+
+## Parallel batch processing
+
+The tool supports controlled parallel batch processing with a configurable number of worker threads.
+
+Use one worker for regular sequential processing:
+
+```bash
+python -m app.cli --template data/template.png --product-scale 0.6 --workers 1
+```
+
+Use multiple workers for parallel processing:
+
+```bash
+python -m app.cli --template data/template.png --product-scale 0.6 --workers 4
+```
+
+Parallel processing can improve performance on large image batches, especially when processing many files without heavy background removal.
+
+When background removal is enabled, using too many workers may increase memory usage because neural network inference is more resource-intensive.
+
+Recommended starting points:
+
+| Mode                                        | Recommended workers |
+| ------------------------------------------- | ------------------: |
+| Resize/template processing only             |               `2–8` |
+| Background removal with `u2net`             |               `1–4` |
+| Background removal with `isnet-general-use` |               `1–2` |
+| Background removal with `birefnet-general`  |               `1–2` |
+
+If background removal is enabled with more than two workers, the tool prints a warning about possible memory usage increase.
 
 ## Canvas and template options
 
@@ -153,7 +185,7 @@ python -m app.cli --remove-bg --bg-model birefnet-general --template data/templa
 
 ## JSON processing report
 
-The tool can save a JSON report with processing statistics, selected settings, failed files, and total processing time.
+The tool can save a JSON report with processing statistics, selected settings, failed files, total file count, worker count, and total processing time.
 
 Save a report to the default path:
 
@@ -179,6 +211,7 @@ Example report structure:
             "reason": "cannot identify image file"
         }
     ],
+    "total_files": 12,
     "settings": {
         "input_folder": "data\\input",
         "output_folder": "data\\output",
@@ -191,7 +224,8 @@ Example report structure:
         "product_scale": 0.6,
         "remove_bg": true,
         "bg_backend": "rembg",
-        "bg_model": "isnet-general-use"
+        "bg_model": "isnet-general-use",
+        "workers": 4
     },
     "processing_time_seconds": 17.45
 }
@@ -229,7 +263,7 @@ Example:
 Measure-Command { python -m app.cli --remove-bg --bg-model u2net --template data/template.png --product-scale 0.6 --output data/output/u2net }
 ```
 
-The measurements below are based on the current local test set and environment. Actual results may vary depending on hardware, image resolution, number of files, and whether the model has already been downloaded.
+The measurements below are based on the current local test set and environment. Actual results may vary depending on hardware, image resolution, number of files, selected worker count, selected background removal model, and whether the model has already been downloaded.
 
 | Model               | Total time, seconds |            Relative speed | Notes                                 |
 | ------------------- | ------------------: | ------------------------: | ------------------------------------- |
@@ -314,19 +348,19 @@ Recommended role:
 For most regular product images:
 
 ```bash
-python -m app.cli --remove-bg --bg-model isnet-general-use --template data/template.png --product-scale 0.6
+python -m app.cli --remove-bg --bg-model isnet-general-use --template data/template.png --product-scale 0.6 --workers 2
 ```
 
 For faster lightweight processing:
 
 ```bash
-python -m app.cli --remove-bg --bg-model u2net --template data/template.png --product-scale 0.6
+python -m app.cli --remove-bg --bg-model u2net --template data/template.png --product-scale 0.6 --workers 4
 ```
 
 For best quality on difficult product images:
 
 ```bash
-python -m app.cli --remove-bg --bg-model birefnet-general --template data/template.png --product-scale 0.6
+python -m app.cli --remove-bg --bg-model birefnet-general --template data/template.png --product-scale 0.6 --workers 1
 ```
 
 ## Demo GIF generation
@@ -337,11 +371,20 @@ The README demo GIF can be regenerated from two prepared frames:
 python tools/make_gif.py
 ```
 
+Input frames:
+
+```text
+docs/assets/demo_frames/before.jpg
+docs/assets/demo_frames/after.jpg
+```
+
 Expected output:
 
 ```text
-docs/assets/demo.gif
+docs/assets/demo_frames/demo.gif
 ```
+
+The GIF generation script keeps the original image proportions and fits frames into a shared canvas instead of stretching them.
 
 ## Project roadmap
 
@@ -363,13 +406,12 @@ docs/assets/demo.gif
 * `v0.14` — background removal model comparison
 * `v0.15` — JSON processing report
 * `v0.16` — README demo GIF
+* `v0.17` — controlled parallel batch processing
 
 ### Planned features
 
-* Add alpha matting options for better edge quality
-* Add post-processing options for masks
-* Add mask diagnostics mode
-* Add parallel image processing
 * Add Docker support
 * Add FastAPI backend
 * Add web interface
+* Add recursive folder processing
+* Add configuration presets

@@ -80,6 +80,11 @@ def parse_args():
                         default=Path("data/output/report.json"),
                         help="Path to JSON processing report"
                         )
+    parser.add_argument("--workers",
+                        type=int,
+                        default=1,
+                        help="Number of worker threads for batch processing"
+                        )
     return parser.parse_args()
 
 
@@ -98,6 +103,7 @@ processor = ImageProcessor(
     remove_bg=args.remove_bg,
     bg_backend=args.bg_backend,
     bg_model=args.bg_model,
+    workers=args.workers,
     )
 
 try:
