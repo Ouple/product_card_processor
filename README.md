@@ -38,6 +38,19 @@ v0.18 — Docker support
 * Docker volume support for input/output files
 * Docker model cache volume for background removal models
 
+## Technology stack
+
+* **Python** — core programming language
+* **Pillow** — image loading, resizing, composition, and saving
+* **rembg** — neural network based background removal
+* **ONNX Runtime** — CPU inference backend used by background removal models
+* **argparse** — command-line interface
+* **concurrent.futures** — controlled parallel batch processing
+* **JSON** — processing reports
+* **Docker** — reproducible containerized execution
+* **PowerShell** — local command examples and performance measurement
+
+
 ## Supported file extensions
 
 * `.jpg`
