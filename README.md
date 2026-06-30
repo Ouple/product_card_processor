@@ -1,8 +1,14 @@
 # Product Card Processor
 
-A Python CLI tool for preparing product images for marketplace cards.
+A Python CLI and FastAPI tool for preparing product images for marketplace cards.
 
 The tool can batch-process product images, resize them relative to a canvas or template, optionally remove the background with neural network models, and place the processed product image onto a marketplace-style card.
+
+The project can be used in three ways:
+
+* as a local Python CLI tool
+* as a FastAPI backend service
+* inside Docker for reproducible execution
 
 ## Demo
 
@@ -10,7 +16,7 @@ The tool can batch-process product images, resize them relative to a canvas or t
 
 ## Current version
 
-v0.18 — Docker support
+v0.19 — FastAPI backend
 
 ## Key features
 
@@ -37,6 +43,11 @@ v0.18 — Docker support
 * Docker support for reproducible local execution
 * Docker volume support for input/output files
 * Docker model cache volume for background removal models
+* FastAPI backend for HTTP-based image processing
+* Swagger UI documentation at `/docs`
+* Health check endpoint with `GET /health`
+* Image processing endpoint with `POST /process`
+* Support for running the API locally and inside Docker
 
 ## Technology stack
 
@@ -45,11 +56,13 @@ v0.18 — Docker support
 * **rembg** — neural network based background removal
 * **ONNX Runtime** — CPU inference backend used by background removal models
 * **argparse** — command-line interface
+* **FastAPI** — HTTP API backend
+* **Pydantic** — request validation and API data models
+* **Uvicorn** — ASGI server for running the API
 * **concurrent.futures** — controlled parallel batch processing
 * **JSON** — processing reports
 * **Docker** — reproducible containerized execution
 * **PowerShell** — local command examples and performance measurement
-
 
 ## Supported file extensions
 
@@ -64,6 +77,7 @@ v0.18 — Docker support
 product_card_processor/
 ├── app/
 │   ├── __init__.py
+│   ├── api.py
 │   ├── background_removal.py
 │   ├── cli.py
 │   ├── config.py
@@ -81,6 +95,7 @@ product_card_processor/
 │   └── make_gif.py
 ├── Dockerfile
 ├── .dockerignore
+├── .gitignore
 ├── requirements.txt
 └── README.md
 ```
@@ -118,7 +133,7 @@ Then run the tool inside a container using mounted input and output folders.
 
 Docker is the recommended option if you want reproducible execution without manually configuring a local Python environment.
 
-## Basic usage
+## Basic CLI usage
 
 Process images from the default input folder and save results to the default output folder:
 
@@ -130,6 +145,113 @@ Show all available CLI options:
 
 ```bash
 python -m app.cli --help
+```
+
+## FastAPI backend
+
+The project includes a FastAPI backend that exposes the image processing pipeline through HTTP endpoints.
+
+The API uses the same `ImageProcessor` core as the CLI version, so the processing logic is shared between the command-line interface and the backend service.
+
+### Run API locally
+
+Start the API server:
+
+```bash
+uvicorn app.api:app --reload
+```
+
+The API will be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+### Available API endpoints
+
+| Method | Endpoint   | Description                           |
+| ------ | ---------- | ------------------------------------- |
+| `GET`  | `/`        | Basic service information             |
+| `GET`  | `/health`  | Health check endpoint                 |
+| `POST` | `/echo`    | Test endpoint for JSON request bodies |
+| `POST` | `/process` | Run product image processing          |
+
+### Swagger UI
+
+FastAPI automatically generates interactive API documentation.
+
+Open:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+The Swagger UI can be used to test API endpoints directly in the browser.
+
+### Process images through API
+
+Example request body for `POST /process` without background removal:
+
+```json
+{
+  "input_folder": "data/input",
+  "output_folder": "data/output_api",
+  "template_path": "data/template.png",
+  "product_scale": 0.6,
+  "remove_bg": false,
+  "bg_model": "u2net",
+  "workers": 2,
+  "save_report": true,
+  "report_path": "data/output_api/report.json"
+}
+```
+
+Example request body for `POST /process` with background removal:
+
+```json
+{
+  "input_folder": "data/input",
+  "output_folder": "data/output_api_bg",
+  "template_path": "data/template.png",
+  "product_scale": 0.6,
+  "remove_bg": true,
+  "bg_backend": "rembg",
+  "bg_model": "u2net",
+  "workers": 1,
+  "save_report": true,
+  "report_path": "data/output_api_bg/report.json"
+}
+```
+
+Example response:
+
+```json
+{
+  "status": "completed",
+  "report": {
+    "processed_count": 11,
+    "failed_count": 0,
+    "failed_files": [],
+    "total_files": 11,
+    "settings": {
+      "input_folder": "data\\input",
+      "output_folder": "data\\output_api_bg",
+      "canvas_width": 1080,
+      "canvas_height": 1440,
+      "allow_upscale": true,
+      "template_path": "data\\template.png",
+      "offset_x": 0,
+      "offset_y": 0,
+      "product_scale": 0.6,
+      "remove_bg": true,
+      "bg_backend": "rembg",
+      "bg_model": "u2net",
+      "workers": 1
+    },
+    "processing_time_seconds": 10.027,
+    "report_path": "data\\output_api_bg\\report.json"
+  }
+}
 ```
 
 ## Parallel batch processing
@@ -431,6 +553,40 @@ The JSON report will be saved to:
 data/output_bg/report.json
 ```
 
+## Run FastAPI backend in Docker
+
+The FastAPI backend can also be started inside Docker.
+
+Run API without background removal model cache:
+
+```powershell
+docker run --rm `
+  -p 8000:8000 `
+  -v "${PWD}\data:/app/data" `
+  product-card-processor `
+  uvicorn app.api:app --host 0.0.0.0 --port 8000
+```
+
+Open Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Run API with background removal model cache:
+
+```powershell
+docker run --rm `
+  -p 8000:8000 `
+  -v "${PWD}\data:/app/data" `
+  -v product_card_models:/models `
+  -e U2NET_HOME=/models `
+  product-card-processor `
+  uvicorn app.api:app --host 0.0.0.0 --port 8000
+```
+
+This command starts the FastAPI backend inside Docker and keeps background removal models cached between container runs.
+
 ## Docker model cache volume
 
 The Docker background removal command uses a Docker volume:
@@ -494,13 +650,13 @@ Build image:
 docker build -t product-card-processor .
 ```
 
-Run help:
+Run CLI help:
 
 ```powershell
 docker run --rm product-card-processor
 ```
 
-Run without background removal:
+Run CLI without background removal:
 
 ```powershell
 docker run --rm `
@@ -509,7 +665,7 @@ docker run --rm `
   python -m app.cli --input data/input --output data/output --template data/template.png --product-scale 0.6 --workers 2 --save-report
 ```
 
-Run with background removal:
+Run CLI with background removal:
 
 ```powershell
 docker run --rm `
@@ -518,6 +674,28 @@ docker run --rm `
   -e U2NET_HOME=/models `
   product-card-processor `
   python -m app.cli --input data/input --output data/output_bg --template data/template.png --product-scale 0.6 --remove-bg --bg-model u2net --workers 1 --save-report --report-path data/output_bg/report.json
+```
+
+Run FastAPI backend:
+
+```powershell
+docker run --rm `
+  -p 8000:8000 `
+  -v "${PWD}\data:/app/data" `
+  product-card-processor `
+  uvicorn app.api:app --host 0.0.0.0 --port 8000
+```
+
+Run FastAPI backend with background removal model cache:
+
+```powershell
+docker run --rm `
+  -p 8000:8000 `
+  -v "${PWD}\data:/app/data" `
+  -v product_card_models:/models `
+  -e U2NET_HOME=/models `
+  product-card-processor `
+  uvicorn app.api:app --host 0.0.0.0 --port 8000
 ```
 
 ## Docker troubleshooting
@@ -557,6 +735,22 @@ Recommended starting point:
 ```text
 Memory: 4 GB or more
 Swap: 2 GB or more
+```
+
+### API is not available from the browser
+
+When running FastAPI inside Docker, use:
+
+```powershell
+uvicorn app.api:app --host 0.0.0.0 --port 8000
+```
+
+The `--host 0.0.0.0` option is required so the API can be accessed from outside the container.
+
+Also make sure the port is published:
+
+```powershell
+-p 8000:8000
 ```
 
 ### Background removal is slow in Docker
@@ -728,10 +922,11 @@ The GIF generation script keeps the original image proportions and fits frames i
 * `v0.16` — README demo GIF
 * `v0.17` — controlled parallel batch processing
 * `v0.18` — Docker support
+* `v0.19` — FastAPI backend
 
 ### Planned features
 
-* Add FastAPI backend
+* Add automated tests
 * Add web interface
 * Add recursive folder processing
 * Add configuration presets
