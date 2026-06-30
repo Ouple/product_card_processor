@@ -1,22 +1,33 @@
 # Product Card Processor
 
-A Python CLI and FastAPI tool for preparing product images for marketplace cards.
+A Python CLI, FastAPI, and Web UI tool for preparing product images for marketplace cards.
 
 The tool can batch-process product images, resize them relative to a canvas or template, optionally remove the background with neural network models, and place the processed product image onto a marketplace-style card.
 
-The project can be used in three ways:
+The project can be used in four ways:
 
 * as a local Python CLI tool
 * as a FastAPI backend service
+* through a simple browser-based web interface
 * inside Docker for reproducible execution
 
 ## Demo
 
 ![Product card processing demo](docs/assets/demo_frames/demo_1.gif)
 
+## Web UI screenshots
+
+### Processing settings
+
+![Web UI settings](docs/assets/screenshots/web-ui.png)
+
+### Request payload and result
+
+![Web UI result](docs/assets/screenshots/web-ui_1.png)
+
 ## Current version
 
-v0.19 — FastAPI backend
+v0.20 — Simple Web UI
 
 ## Key features
 
@@ -47,7 +58,12 @@ v0.19 — FastAPI backend
 * Swagger UI documentation at `/docs`
 * Health check endpoint with `GET /health`
 * Image processing endpoint with `POST /process`
-* Support for running the API locally and inside Docker
+* Simple browser-based web interface at `/ui`
+* Web form for configuring image processing parameters
+* Request payload preview before processing
+* JSON result display after processing
+* Web UI powered by the existing FastAPI backend
+* Support for running the CLI, API, and Web UI locally or inside Docker
 
 ## Technology stack
 
@@ -58,7 +74,10 @@ v0.19 — FastAPI backend
 * **argparse** — command-line interface
 * **FastAPI** — HTTP API backend
 * **Pydantic** — request validation and API data models
-* **Uvicorn** — ASGI server for running the API
+* **Uvicorn** — ASGI server for running the API and Web UI
+* **HTML** — simple web interface structure
+* **CSS** — basic web interface styling
+* **JavaScript** — browser-side request handling with `fetch`
 * **concurrent.futures** — controlled parallel batch processing
 * **JSON** — processing reports
 * **Docker** — reproducible containerized execution
@@ -90,9 +109,15 @@ product_card_processor/
 │   └── template.png
 ├── docs/
 │   └── assets/
-│       └── demo_frames/
+│       ├── demo_frames/
+│       │   └── demo_1.gif
+│       └── screenshots/
+│           ├── web-ui.png
+│           └── web-ui_1.png
 ├── tools/
 │   └── make_gif.py
+├── web/
+│   └── index.html
 ├── Dockerfile
 ├── .dockerignore
 ├── .gitignore
@@ -102,7 +127,7 @@ product_card_processor/
 
 ## Requirements
 
-The project can be run in two ways:
+The project can be run in two main environments:
 
 * locally with Python
 * inside Docker
@@ -151,7 +176,7 @@ python -m app.cli --help
 
 The project includes a FastAPI backend that exposes the image processing pipeline through HTTP endpoints.
 
-The API uses the same `ImageProcessor` core as the CLI version, so the processing logic is shared between the command-line interface and the backend service.
+The API uses the same `ImageProcessor` core as the CLI version, so the processing logic is shared between the command-line interface, the API, and the Web UI.
 
 ### Run API locally
 
@@ -173,6 +198,7 @@ http://127.0.0.1:8000
 | ------ | ---------- | ------------------------------------- |
 | `GET`  | `/`        | Basic service information             |
 | `GET`  | `/health`  | Health check endpoint                 |
+| `GET`  | `/ui`      | Browser-based Web UI                  |
 | `POST` | `/echo`    | Test endpoint for JSON request bodies |
 | `POST` | `/process` | Run product image processing          |
 
@@ -196,9 +222,15 @@ Example request body for `POST /process` without background removal:
 {
   "input_folder": "data/input",
   "output_folder": "data/output_api",
+  "canvas_width": 1080,
+  "canvas_height": 1440,
+  "allow_upscale": true,
   "template_path": "data/template.png",
+  "offset_x": 0,
+  "offset_y": 0,
   "product_scale": 0.6,
   "remove_bg": false,
+  "bg_backend": "rembg",
   "bg_model": "u2net",
   "workers": 2,
   "save_report": true,
@@ -212,7 +244,12 @@ Example request body for `POST /process` with background removal:
 {
   "input_folder": "data/input",
   "output_folder": "data/output_api_bg",
+  "canvas_width": 1080,
+  "canvas_height": 1440,
+  "allow_upscale": true,
   "template_path": "data/template.png",
+  "offset_x": 0,
+  "offset_y": 0,
   "product_scale": 0.6,
   "remove_bg": true,
   "bg_backend": "rembg",
@@ -252,6 +289,74 @@ Example response:
     "report_path": "data\\output_api_bg\\report.json"
   }
 }
+```
+
+## Web interface
+
+The project includes a simple browser-based web interface for running image processing through the FastAPI backend.
+
+The Web UI is available at:
+
+```text
+http://127.0.0.1:8000/ui
+```
+
+The interface allows users to configure the main processing parameters without using the command line or Swagger UI.
+
+It supports:
+
+* input and output folder paths
+* canvas width and height
+* template path
+* product scale
+* X and Y offsets
+* background removal settings
+* background removal model selection
+* worker count
+* report path
+* request payload preview
+* processing result display
+
+### Run Web UI locally
+
+Start the FastAPI server:
+
+```bash
+uvicorn app.api:app --reload
+```
+
+Open the Web UI:
+
+```text
+http://127.0.0.1:8000/ui
+```
+
+Fill in the processing settings and click:
+
+```text
+Process images
+```
+
+The web page sends a JSON request to:
+
+```text
+POST /process
+```
+
+and displays the response report directly in the browser.
+
+### Web UI processing flow
+
+```text
+Browser Web UI
+      ↓
+fetch("/process")
+      ↓
+FastAPI backend
+      ↓
+ImageProcessor
+      ↓
+processed images + JSON report
 ```
 
 ## Parallel batch processing
@@ -553,11 +658,11 @@ The JSON report will be saved to:
 data/output_bg/report.json
 ```
 
-## Run FastAPI backend in Docker
+## Run FastAPI backend and Web UI in Docker
 
-The FastAPI backend can also be started inside Docker.
+The FastAPI backend and Web UI can also be started inside Docker.
 
-Run API without background removal model cache:
+Run API and Web UI without background removal model cache:
 
 ```powershell
 docker run --rm `
@@ -573,7 +678,13 @@ Open Swagger UI:
 http://127.0.0.1:8000/docs
 ```
 
-Run API with background removal model cache:
+Open Web UI:
+
+```text
+http://127.0.0.1:8000/ui
+```
+
+Run API and Web UI with background removal model cache:
 
 ```powershell
 docker run --rm `
@@ -585,7 +696,7 @@ docker run --rm `
   uvicorn app.api:app --host 0.0.0.0 --port 8000
 ```
 
-This command starts the FastAPI backend inside Docker and keeps background removal models cached between container runs.
+This command starts the FastAPI backend and serves the Web UI inside Docker. The background removal models are cached between container runs.
 
 ## Docker model cache volume
 
@@ -676,7 +787,7 @@ docker run --rm `
   python -m app.cli --input data/input --output data/output_bg --template data/template.png --product-scale 0.6 --remove-bg --bg-model u2net --workers 1 --save-report --report-path data/output_bg/report.json
 ```
 
-Run FastAPI backend:
+Run FastAPI backend and Web UI:
 
 ```powershell
 docker run --rm `
@@ -686,7 +797,7 @@ docker run --rm `
   uvicorn app.api:app --host 0.0.0.0 --port 8000
 ```
 
-Run FastAPI backend with background removal model cache:
+Run FastAPI backend and Web UI with background removal model cache:
 
 ```powershell
 docker run --rm `
@@ -737,7 +848,7 @@ Memory: 4 GB or more
 Swap: 2 GB or more
 ```
 
-### API is not available from the browser
+### API or Web UI is not available from the browser
 
 When running FastAPI inside Docker, use:
 
@@ -751,6 +862,12 @@ Also make sure the port is published:
 
 ```powershell
 -p 8000:8000
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8000/ui
 ```
 
 ### Background removal is slow in Docker
@@ -923,10 +1040,10 @@ The GIF generation script keeps the original image proportions and fits frames i
 * `v0.17` — controlled parallel batch processing
 * `v0.18` — Docker support
 * `v0.19` — FastAPI backend
+* `v0.20` — simple web interface
 
 ### Planned features
 
 * Add automated tests
-* Add web interface
 * Add recursive folder processing
 * Add configuration presets

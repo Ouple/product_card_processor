@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from fastapi.responses import FileResponse
 
 from app.processor import ImageProcessor
 
@@ -113,3 +114,7 @@ def process_images(request: ProcessRequest):
             status_code=500,
             detail=f"Unexpected error: {error}",
         )
+
+@app.get("/ui")
+def web_ui():
+    return FileResponse("web/index.html")
