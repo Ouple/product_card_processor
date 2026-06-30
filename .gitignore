@@ -12,3 +12,6 @@ data/output/*
 .idea/
 
 data/template.png
+
+data/output*/
+data/template_1.png
